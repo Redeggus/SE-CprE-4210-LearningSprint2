@@ -1,0 +1,22 @@
+Reflection
+
+For learning sprint 2, I created a small interactive visualization that demonstrates integer arithmetic overflow. 
+I understand integer arithmetic overflow the most, so it seemed reasonable for me to demonstrate that/teach it since I'm comfortable with it the most.
+
+The main concept demonstrated by the application is fixed-width integer arithmetic. 
+Take an 8 bit integer for example, it can represent values 0 to 255. The main example is 255 + 1. 
+If the program calculates 255 + 1, the mathematical result is 256, but 256 requires nine bits to represent in binary. 
+Since only eight bits are available, the result becomes 00000000 and is stored as 0. 
+The visualization shows this process using both the decimal values and the individual binary bits. 
+Users can change the integer width and compare signed/unsigned integers. So it also functions as a representation/calculator for those.
+
+AI-assisted development was useful throughout the process.
+I've been using it more throughout the years as it is helpful to complete more simplified code.
+For this problem, I derived the requirements, and gave it to the AI agent to create a simple index.html file.
+While technically yes, it would be easier to copy paste the whole thing, you do get better results when you are more specific.
+
+Building the visualization helped deepen my understanding of integer overflow because I had to think about what actually happens to the bits during an arithmetic operation. 
+I think teaching something helps anyone learn or understand something better. It's a different thing to understand something versus teaching it to someone else.
+
+Overall, this project showed me how an interactive visualization can make a technical computer-security concept easier to understand. 
+It also gave me experience using AI as a development assistant.
