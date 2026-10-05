@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integer Arithmetic Overflow Explorer</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2e;
+      --panel2: #19243d;
+      --text: #edf2ff;
+      --muted: #9ca9c9;
+      --blue: #5aa9ff;
+      --green: #42d392;
+      --orange: #ffb454;
+      --red: #ff6577;
+      --border: #293653;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top right, #1b3157 0, transparent 35%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: auto;
+      padding: 40px 0 60px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin: 0 0 10px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 750px;
+      margin: auto;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: rgba(18, 26, 46, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 25px;
+      margin-bottom: 22px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0c1427;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input[type="range"] {
+      accent-color: var(--blue);
+      padding: 0;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-value {
+      min-width: 60px;
+      text-align: center;
+      background: var(--panel2);
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      color: white;
+      background: linear-gradient(135deg, #398ee8, #266bc1);
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    .secondary {
+      background: #293653;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .explanation {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* Arithmetic equation */
+
+    .equation {
+      margin: 25px 0;
+      padding: 28px 15px;
+      border-radius: 15px;
+      background: #080e1c;
+      text-align: center;
+      font-family: "Courier New", monospace;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: bold;
+      overflow-x: auto;
+    }
+
+    .equation .a {
+      color: var(--blue);
+    }
+
+    .equation .b {
+      color: var(--orange);
+    }
+
+    .equation .result {
+      color: var(--green);
+    }
+
+    .equation .equals {
+      color: var(--muted);
+    }
+
+    /* Results */
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    @media (max-width: 700px) {
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .result-card {
+      background: #0c1427;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .result-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    .blue {
+      color: var(--blue);
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .orange {
+      color: var(--orange);
+    }
+
+    .red {
+      color: var(--red);
+    }
+
+    /* Overflow alert */
+
+    .overflow-alert {
+      display: none;
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(255, 101, 119, 0.12);
+      border: 1px solid rgba(255, 101, 119, 0.5);
+      color: #ffbdc5;
+      line-height: 1.6;
+    }
+
+    .overflow-alert.visible {
+      display: block;
+    }
+
+    /* Bits */
+
+    .bits {
+      display: grid;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .bit-row {
+      display: grid;
+      grid-template-columns: 100px repeat(8, 1fr);
+      gap: 7px;
+      align-items: center;
+    }
+
+    @media (max-width: 700px) {
+      .bit-row {
+        grid-template-columns: 55px repeat(8, 1fr);
+        gap: 3px;
+      }
+    }
+
+    .bit-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .bit {
+      text-align: center;
+      padding: 12px 3px;
+      border-radius: 8px;
+      background: #0c1427;
+      border: 1px solid var(--border);
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .bit.one {
+      background: #286ab5;
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .bit.result-bit {
+      background: #16734e;
+      border-color: var(--green);
+    }
+
+    .carry {
+      color: var(--red);
+      font-size: 0.8rem;
+    }
+
+    /* Formula */
+
+    .formula {
+      background: #080e1c;
+      border-left: 4px solid var(--green);
+      padding: 17px;
+      border-radius: 0 8px 8px 0;
+      font-family: "Courier New", monospace;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    /* Timeline */
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 800px) {
+      .steps {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .step {
+      background: #0c1427;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--blue);
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .step p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* Quiz */
+
+    .quiz {
+      background: #0c1427;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .quiz-options button {
+      background: #19243d;
+      border: 1px solid var(--border);
+    }
+
+    .quiz-options button.correct {
+      background: rgba(66, 211, 146, 0.2);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .quiz-options button.wrong {
+      background: rgba(255, 101, 119, 0.2);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    #quizFeedback {
+      color: var(--muted);
+      margin-top: 15px;
+      line-height: 1.5;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 35px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>Integer Arithmetic Overflow</h1>
+
+    <p class="subtitle">
+      Explore what happens when a mathematical result is larger than the
+      maximum value a fixed-width integer can represent.
+    </p>
+  </header>
+
+
+  <!-- CONTROLS -->
+
+  <section class="card">
+
+    <h2>1. Create an Arithmetic Operation</h2>
+
+    <p class="explanation">
+      Choose an integer width and enter two values. The computer will perform
+      the addition using a fixed number of bits. Try
+      <strong>255 + 1</strong> with an 8-bit unsigned integer.
+    </p>
+
+    <div class="controls">
+
+      <div>
+        <label for="bitWidth">Integer width</label>
+
+        <select id="bitWidth">
+          <option value="4">4-bit</option>
+          <option value="8" selected>8-bit</option>
+          <option value="16">16-bit</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="mode">Interpretation</label>
+
+        <select id="mode">
+          <option value="unsigned">Unsigned</option>
+          <option value="signed">Signed (two's complement)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="firstValue">First value</label>
+        <input id="firstValue" type="number" value="255">
+      </div>
+
+      <div>
+        <label for="secondValue">Value to add</label>
+        <input id="secondValue" type="number" value="1">
+      </div>
+
+    </div>
+
+    <div class="button-row">
+      <button id="overflowExample">
+        Try 255 + 1
+      </button>
+
+      <button id="smallExample" class="secondary">
+        Try 10 + 5
+      </button>
+
+      <button id="resetButton" class="secondary">
+        Reset
+      </button>
+    </div>
+
+  </section>
+
+
+  <!-- EQUATION -->
+
+  <section class="card">
+
+    <h2>2. Watch the Arithmetic</h2>
+
+    <div class="equation">
+
+      <span class="a" id="equationA">255</span>
+
+      <span class="equals"> + </span>
+
+      <span class="b" id="equationB">1</span>
+
+      <span class="equals"> = </span>
+
+      <span class="result" id="equationResult">0</span>
+
+    </div>
+
+    <div class="result-grid">
+
+      <div class="result-card">
+
+        <div class="result-label">
+          Mathematical result
+        </div>
+
+        <div class="result-value blue" id="mathematicalResult">
+          256
+        </div>
+
+      </div>
+
+      <div class="result-card">
+
+        <div class="result-label">
+          Stored unsigned result
+        </div>
+
+        <div class="result-value green" id="unsignedResult">
+          0
+        </div>
+
+      </div>
+
+      <div class="result-card">
+
+        <div class="result-label">
+          Stored signed result
+        </div>
+
+        <div class="result-value orange" id="signedResult">
+          0
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="overflow-alert" id="overflowAlert">
+
+      <strong>⚠ INTEGER OVERFLOW DETECTED</strong>
+
+      <br><br>
+
+      The mathematical result is outside the range that this fixed-width
+      integer can represent.
+
+      The computer keeps only the available bits, so the value wraps around.
+
+    </div>
+
+  </section>
+
+
+  <!-- BINARY VISUALIZATION -->
+
+  <section class="card">
+
+    <h2>3. See the Bits</h2>
+
+    <p class="explanation">
+      The calculation happens using binary. For an 8-bit integer, only
+      eight binary positions are available.
+    </p>
+
+    <div class="bits">
+
+      <div class="bit-row">
+
+        <div class="bit-label">
+          First
+        </div>
+
+        <div id="firstBit0" class="bit">0</div>
+        <div id="firstBit1" class="bit">0</div>
+        <div id="firstBit2" class="bit">0</div>
+        <div id="firstBit3" class="bit">0</div>
+        <div id="firstBit4" class="bit">0</div>
+        <div id="firstBit5" class="bit">0</div>
+        <div id="firstBit6" class="bit">0</div>
+        <div id="firstBit7" class="bit">0</div>
+
+      </div>
+
+
+      <div class="bit-row">
+
+        <div class="bit-label">
+          Second
+        </div>
+
+        <div id="secondBit0" class="bit">0</div>
+        <div id="secondBit1" class="bit">0</div>
+        <div id="secondBit2" class="bit">0</div>
+        <div id="secondBit3" class="bit">0</div>
+        <div id="secondBit4" class="bit">0</div>
+        <div id="secondBit5" class="bit">0</div>
+        <div id="secondBit6" class="bit">0</div>
+        <div id="secondBit7" class="bit">0</div>
+
+      </div>
+
+
+      <div class="bit-row">
+
+        <div class="bit-label">
+          Result
+        </div>
+
+        <div id="resultBit0" class="bit result-bit">0</div>
+        <div id="resultBit1" class="bit result-bit">0</div>
+        <div id="resultBit2" class="bit result-bit">0</div>
+        <div id="resultBit3" class="bit result-bit">0</div>
+        <div id="resultBit4" class="bit result-bit">0</div>
+        <div id="resultBit5" class="bit result-bit">0</div>
+        <div id="resultBit6" class="bit result-bit">0</div>
+        <div id="resultBit7" class="bit result-bit">0</div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- EXPLANATION -->
+
+  <section class="card">
+
+    <h2>4. Why Does 255 + 1 Become 0?</h2>
+
+    <p class="explanation">
+      An 8-bit unsigned integer has only eight binary positions. Therefore,
+      it can represent 256 different values:
+    </p>
+
+    <div class="formula">
+
+      2<sup>8</sup> = 256 possible bit patterns
+
+      <br><br>
+
+      Unsigned range:
+
+      0 → 255
+
+      <br><br>
+
+      255 in binary:
+
+      11111111
+
+      <br><br>
+
+      255 + 1:
+
+      100000000
+
+      <br><br>
+
+      The result requires <strong>9 bits</strong>, but our integer only has
+      8 bits.
+
+      <br><br>
+
+      The extra leftmost bit is discarded:
+
+      <br>
+
+      <strong>100000000 → 00000000 → 0</strong>
+
+    </div>
+
+
+    <div class="steps">
+
+      <div class="step">
+
+        <div class="step-number">1</div>
+
+        <strong>Calculate normally</strong>
+
+        <p>
+          255 + 1 mathematically equals 256.
+        </p>
+
+      </div>
+
+
+      <div class="step">
+
+        <div class="step-number">2</div>
+
+        <strong>Convert to binary</strong>
+
+        <p>
+          256 is represented as 100000000.
+        </p>
+
+      </div>
+
+
+      <div class="step">
+
+        <div class="step-number">3</div>
+
+        <strong>Keep 8 bits</strong>
+
+        <p>
+          The ninth bit does not fit in the variable.
+        </p>
+
+      </div>
+
+
+      <div class="step">
+
+        <div class="step-number">4</div>
+
+        <strong>Wrap around</strong>
+
+        <p>
+          The remaining bits are 00000000, which equals 0.
+        </p>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- SIGNED VS UNSIGNED -->
+
+  <section class="card">
+
+    <h2>5. Signed vs. Unsigned</h2>
+
+    <p class="explanation">
+      The same bits can have different meanings depending on how the
+      program interprets them.
+    </p>
+
+    <div class="formula" id="signedExplanation">
+
+      For 8-bit integers:
+
+      <br><br>
+
+      Unsigned range: 0 to 255
+
+      <br>
+
+      Signed range: -128 to 127
+
+    </div>
+
+  </section>
+
+
+  <!-- QUIZ -->
+
+  <section class="card">
+
+    <h2>6. Test Your Understanding</h2>
+
+    <div class="quiz">
+
+      <strong>
+        What happens when an 8-bit unsigned integer containing 255
+        is increased by 1?
+      </strong>
+
+      <div class="quiz-options">
+
+        <button data-answer="wrong">
+          256
+        </button>
+
+        <button data-answer="correct">
+          0
+        </button>
+
+        <button data-answer="wrong">
+          -1
+        </button>
+
+        <button data-answer="wrong">
+          127
+        </button>
+
+      </div>
+
+      <div id="quizFeedback"></div>
+
+    </div>
+
+  </section>
+
+
+  <footer>
+    Educational visualization for understanding integer arithmetic overflow.
+    No exploit code or real-world attack functionality is included.
+  </footer>
+
+</div>
+
+
+<script>
+
+  const bitWidth = document.getElementById("bitWidth");
+  const mode = document.getElementById("mode");
+
+  const firstValue = document.getElementById("firstValue");
+  const secondValue = document.getElementById("secondValue");
+
+  const equationA = document.getElementById("equationA");
+  const equationB = document.getElementById("equationB");
+  const equationResult = document.getElementById("equationResult");
+
+  const mathematicalResult =
+    document.getElementById("mathematicalResult");
+
+  const unsignedResult =
+    document.getElementById("unsignedResult");
+
+  const signedResult =
+    document.getElementById("signedResult");
+
+  const overflowAlert =
+    document.getElementById("overflowAlert");
+
+
+  function getWidth() {
+    return Number(bitWidth.value);
+  }
+
+
+  function getModulus() {
+    return 2 ** getWidth();
+  }
+
+
+  function getUnsignedMax() {
+    return getModulus() - 1;
+  }
+
+
+  function getSignedMin() {
+    return -(2 ** (getWidth() - 1));
+  }
+
+
+  function getSignedMax() {
+    return (2 ** (getWidth() - 1)) - 1;
+  }
+
+
+  /*
+   * Converts any mathematical result into the value that
+   * can actually fit inside the selected number of bits.
+   */
+  function normalizeUnsigned(value) {
+
+    const modulus = getModulus();
+
+    return ((value % modulus) + modulus) % modulus;
+
+  }
+
+
+  /*
+   * Interprets an unsigned bit pattern as a signed
+   * two's-complement integer.
+   */
+  function toSigned(unsignedValue) {
+
+    const signBit = 2 ** (getWidth() - 1);
+
+    if (unsignedValue >= signBit) {
+
+      return unsignedValue - getModulus();
+
+    }
+
+    return unsignedValue;
+
+  }
+
+
+  function updateBits(elementPrefix, value) {
+
+    const width = getWidth();
+
+    /*
+     * This visualization uses the rightmost eight cells
+     * for the 8-bit demonstration.
+     */
+
+    for (let i = 0; i < 8; i++) {
+
+      const element =
+        document.getElementById(elementPrefix + i);
+
+      if (!element) continue;
+
+      const bitPosition = 7 - i;
+
+      let bit = 0;
+
+      if (bitPosition < width) {
+
+        bit = (value >> bitPosition) & 1;
+
+      }
+
+      element.textContent = bit;
+
+      element.classList.toggle("one", bit === 1);
+
+    }
+
+  }
+
+
+  function update() {
+
+    const a = Number(firstValue.value);
+    const b = Number(secondValue.value);
+
+    const mathematical = a + b;
+
+    const unsigned = normalizeUnsigned(mathematical);
+
+    const signed = toSigned(unsigned);
+
+    const width = getWidth();
+
+    equationA.textContent = a;
+    equationB.textContent = b;
+
+    /*
+     * Show the representation selected by the user.
+     */
+    if (mode.value === "signed") {
+
+      equationResult.textContent = signed;
+
+    } else {
+
+      equationResult.textContent = unsigned;
+
+    }
+
+    mathematicalResult.textContent = mathematical;
+
+    unsignedResult.textContent = unsigned;
+
+    signedResult.textContent = signed;
+
+
+    /*
+     * Overflow occurs when the mathematical result cannot
+     * be represented by the selected interpretation.
+     */
+
+    let overflow = false;
+
+    if (mode.value === "unsigned") {
+
+      overflow =
+        mathematical > getUnsignedMax() ||
+        mathematical < 0;
+
+    } else {
+
+      overflow =
+        mathematical > getSignedMax() ||
+        mathematical < getSignedMin();
+
+    }
+
+    overflowAlert.classList.toggle("visible", overflow);
+
+
+    updateBits("firstBit", normalizeUnsigned(a));
+
+    updateBits("secondBit", normalizeUnsigned(b));
+
+    updateBits("resultBit", unsigned);
+
+
+    document.getElementById("signedExplanation").innerHTML =
+
+      `For ${width}-bit integers:<br><br>` +
+
+      `Unsigned range: <strong>0 to ${getUnsignedMax()}</strong><br>` +
+
+      `Signed range: <strong>${getSignedMin()} to ${getSignedMax()}</strong><br><br>` +
+
+      `Current bit pattern: ` +
+
+      `<strong>${unsigned.toString(2).padStart(width, "0")}</strong><br><br>` +
+
+      `Unsigned interpretation: <strong>${unsigned}</strong><br>` +
+
+      `Signed interpretation: <strong>${signed}</strong>`;
+
+  }
+
+
+  /*
+   * Preset examples
+   */
+
+  document
+    .getElementById("overflowExample")
+    .addEventListener("click", () => {
+
+      bitWidth.value = "8";
+
+      mode.value = "unsigned";
+
+      firstValue.value = 255;
+
+      secondValue.value = 1;
+
+      update();
+
+    });
+
+
+  document
+    .getElementById("smallExample")
+    .addEventListener("click", () => {
+
+      bitWidth.value = "8";
+
+      mode.value = "unsigned";
+
+      firstValue.value = 10;
+
+      secondValue.value = 5;
+
+      update();
+
+    });
+
+
+  document
+    .getElementById("resetButton")
+    .addEventListener("click", () => {
+
+      bitWidth.value = "8";
+
+      mode.value = "unsigned";
+
+      firstValue.value = 0;
+
+      secondValue.value = 0;
+
+      update();
+
+    });
+
+
+  firstValue.addEventListener("input", update);
+
+  secondValue.addEventListener("input", update);
+
+  bitWidth.addEventListener("change", update);
+
+  mode.addEventListener("change", update);
+
+
+  /*
+   * Quiz
+   */
+
+  const quizButtons =
+    document.querySelectorAll(".quiz-options button");
+
+  const quizFeedback =
+    document.getElementById("quizFeedback");
+
+
+  quizButtons.forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      quizButtons.forEach(b => {
+
+        b.classList.remove("correct", "wrong");
+
+      });
+
+
+      if (button.dataset.answer === "correct") {
+
+        button.classList.add("correct");
+
+        quizFeedback.innerHTML =
+          "✓ Correct! 8-bit unsigned integers can store " +
+          "0 through 255. Adding 1 to 255 produces 256 mathematically, " +
+          "but 256 requires 9 bits. The available 8 bits become 00000000, " +
+          "so the stored value wraps around to 0.";
+
+      } else {
+
+        button.classList.add("wrong");
+
+        quizFeedback.innerHTML =
+          "Not quite. Think about the number of bits available. " +
+          "An 8-bit unsigned integer has 256 possible values: " +
+          "0 through 255. After 255, it wraps back to 0.";
+
+      }
+
+    });
+
+  });
+
+
+  /*
+   * Initial state
+   */
+
+  update();
+
+</script>
+
+</body>
+</html>
